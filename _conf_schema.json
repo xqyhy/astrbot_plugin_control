@@ -1,0 +1,116 @@
+{
+    "mama_ids": {
+        "type": "list",
+        "description": "主人QQ号列表（控制权限白名单）",
+        "hint": "只有这些QQ号能使用闭嘴、说话、忽略等控制指令",
+        "items": { "type": "string" },
+        "default": [""]
+    },
+    "require_admin": {
+        "type": "bool",
+        "description": "需要 bot 管理员权限",
+        "hint": "开启后，只有 bot 管理员才能使用控制指令（与主人QQ号取交集）",
+        "default": false
+    },
+    "priority": {
+        "type": "int",
+        "description": "插件优先级",
+        "hint": "数值越大优先级越高。如果你不知道这是什么，请不要修改",
+        "default": 10000
+    },
+    "command_settings": {
+        "type": "object",
+        "description": "控制指令设置",
+        "hint": "各指令组分别配置。指令列表首项作为主指令，其余项作为别名",
+        "items": {
+            "shutup_settings": {
+                "type": "object",
+                "description": "闭嘴指令设置",
+                "items": {
+                    "shutup_commands": {
+                        "type": "list",
+                        "description": "闭嘴指令列表",
+                        "hint": "触发后bot会在指定时长内不回复任何消息",
+                        "items": { "type": "string" },
+                        "default": ["闭嘴"]
+                    },
+                    "default_duration": {
+                        "type": "int",
+                        "description": "默认闭嘴时长（秒）",
+                        "hint": "说闭嘴但不指定时长时，默认闭嘴的秒数",
+                        "default": 60
+                    },
+                    "shutup_reply": {
+                        "type": "string",
+                        "description": "闭嘴时的回复消息",
+                        "hint": "支持占位符 {duration}（闭嘴时长，秒）",
+                        "default": "呜…本狐闭嘴 {duration} 秒…(´;ω;` )"
+                    }
+                }
+            },
+            "unshutup_settings": {
+                "type": "object",
+                "description": "说话指令设置",
+                "items": {
+                    "unshutup_commands": {
+                        "type": "list",
+                        "description": "说话指令列表",
+                        "hint": "触发后解除闭嘴状态，本狐恢复回复",
+                        "items": { "type": "string" },
+                        "default": ["说话"]
+                    },
+                    "unshutup_reply": {
+                        "type": "string",
+                        "description": "解除闭嘴时的回复消息",
+                        "hint": "解除闭嘴后本狐回复的文本",
+                        "default": "好耶～本狐复活啦！ヽ(●´∀`●)ﾉ"
+                    }
+                }
+            },
+            "ignore_settings": {
+                "type": "object",
+                "description": "忽略用户指令设置",
+                "items": {
+                    "ignore_commands": {
+                        "type": "list",
+                        "description": "忽略用户指令列表",
+                        "hint": "触发后指定QQ号的消息在指定时长内不会被回复",
+                        "items": { "type": "string" },
+                        "default": ["忽略"]
+                    },
+                    "default_duration": {
+                        "type": "int",
+                        "description": "默认忽略时长（秒）",
+                        "hint": "说忽略但不指定时长时，默认忽略的秒数",
+                        "default": 60
+                    },
+                    "ignore_reply": {
+                        "type": "string",
+                        "description": "忽略用户时的回复消息",
+                        "hint": "支持占位符 {target}（QQ号）和 {duration}（时长，秒）",
+                        "default": "遵命主人～已忽略用户 {target} {duration} 秒！(｀・ω・´)✧"
+                    }
+                }
+            },
+            "unignore_settings": {
+                "type": "object",
+                "description": "取消忽略指令设置",
+                "items": {
+                    "unignore_commands": {
+                        "type": "list",
+                        "description": "取消忽略指令列表",
+                        "hint": "触发后提前解除对指定QQ号的忽略状态",
+                        "items": { "type": "string" },
+                        "default": ["取消忽略"]
+                    },
+                    "unignore_reply": {
+                        "type": "string",
+                        "description": "取消忽略时的回复消息",
+                        "hint": "支持占位符 {target}（QQ号）",
+                        "default": "好哒～已取消忽略用户 {target}！(๑¯◡¯๑)✧"
+                    }
+                }
+            }
+        }
+    }
+}
