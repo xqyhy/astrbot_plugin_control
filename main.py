@@ -1,4 +1,4 @@
-"""bot的控制插件 — 主人说闭嘴，bot就真闭嘴！"""
+"""小七月的控制插件 — 麻麻说闭嘴，本狐就真闭嘴！"""
 
 import json
 import os
@@ -16,7 +16,7 @@ DEFAULT_SILENCE_SECONDS = 60
 DEFAULT_IGNORE_SECONDS = 60
 
 
-@register("astrbot_plugin_control", "小七月", "bot控制插件", "v1.0")
+@register("astrbot_plugin_control", "小七月", "麻麻专属控制插件", "v1.0")
 class ControlPlugin(Star):
     """
     控制插件：
@@ -34,6 +34,8 @@ class ControlPlugin(Star):
         self._state_path = os.path.join(self.data_dir, "control_state.json")
         self._ignored: Dict[str, float] = {}
         self._silence_until: float = 0.0
+        self.rate_limits: Dict[str, int] = {}  # QQ号 → 每分钟限制条数
+        self._msg_ts: Dict[str, list] = {}  # QQ号 → [时间戳列表]
         self._restore()
 
     # ── 持久化 ────────────────────────────────────────
@@ -45,6 +47,7 @@ class ControlPlugin(Star):
                     d = json.load(f)
                 self._silence_until = d.get("silence_until", 0.0)
                 self._ignored = d.get("ignored", {})
+                self.rate_limits = d.get("rate_limits", {})
         except Exception as e:
             logger.warning(f"[Control] 加载状态失败: {e}")
 
@@ -54,7 +57,7 @@ class ControlPlugin(Star):
         self._ignored = {k: v for k, v in self._ignored.items() if v > now}
         try:
             with open(self._state_path, "w") as f:
-                json.dump({"silence_until": self._silence_until, "ignored": self._ignored}, f)
+                json.dump({"silence_until": self._silence_until, "ignored": self._ignored, "rate_limits": self.rate_limits}, f)
         except Exception as e:
             logger.warning(f"[Control] 保存状态失败: {e}")
 
@@ -82,6 +85,18 @@ class ControlPlugin(Star):
     def _is_mama(self, event: AstrMessageEvent) -> bool:
         return event.get_sender_id() in MAMA_IDS
 
+    def _rate_limited(self, uid: str) -> bool:
+        limit = self.rate_limits.get(uid)
+        if limit is None:
+            return False
+        now = time.time()
+        ts_list = self._msg_ts.get(uid, [])
+        ts_list[:] = [t for t in ts_list if now - t < 60]
+        if len(ts_list) >= limit:
+            return True
+        ts_list.append(now)
+        return False
+
     def _pick_number(self, text: str, fallback: int) -> int:
         m = re.search(r"(\d+)\s*(?:秒|s)?$", text)
         return int(m.group(1)) if m else fallback
@@ -105,6 +120,14 @@ class ControlPlugin(Star):
             logger.info(f"[Control] 🛑 已忽略用户 {uid}，LLM 请求已拦截")
             event.should_call_llm(False)
             req.contexts.clear()
+            return
+
+        # 限频 → 掐断
+        if not self._is_mama(event) and self._rate_limited(uid):
+            logger.info(f"[Control] 🛑 用户 {uid} 触发限频，LLM 请求已拦截")
+            event.should_call_llm(False)
+            req.contexts.clear()
+            return
 
     @filter.on_decorating_result()
     async def _block_result(self, event: AstrMessageEvent) -> None:
@@ -125,6 +148,13 @@ class ControlPlugin(Star):
         if not self._is_mama(event) and self._skipped(uid):
             logger.info(f"[Control] 🛑 已忽略用户 {uid}，yield 结果已拦截")
             result.chain = []
+            return
+
+        # 限频 → 清空
+        if not self._is_mama(event) and self._rate_limited(uid):
+            logger.info(f"[Control] 🛑 用户 {uid} 触发限频，yield 结果已拦截")
+            result.chain = []
+            return
 
     # ── 指令：闭嘴 ────────────────────────────────────
 
@@ -191,4 +221,64 @@ class ControlPlugin(Star):
             yield event.plain_result(f"好哒～已取消忽略 {target}！(๑¯◡¯๑)✧")
         else:
             yield event.plain_result(f"麻麻～{target} 本来就没被忽略呀！(｀・ω・´)")
+        event.stop_event()
+
+    # ── 指令：限频 ────────────────────────────────────
+
+    @filter.command("限频", priority=10001)
+    async def cmd_ratelimit(self, event: AstrMessageEvent, target: str = "", limit: str = ""):
+        if not self._is_mama(event):
+            return
+        text = event.get_plain_text()
+        parts = text.split()
+        if len(parts) < 3:
+            yield event.plain_result("麻麻～格式是「限频 QQ号 次数」哦！(｀・ω・´)")
+            event.stop_event()
+            return
+        m = re.search(r"(\d+)", parts[1])
+        if not m:
+            yield event.plain_result("麻麻～QQ号格式不对哦！(｀・ω・´)")
+            event.stop_event()
+            return
+        qq_id = m.group(1)
+        if not parts[2].isdigit():
+            yield event.plain_result("麻麻～次数要是数字哦！(｀・ω・´)")
+            event.stop_event()
+            return
+        self.rate_limits[qq_id] = int(parts[2])
+        self._flush()
+        yield event.plain_result(f"好哒～已设置 {qq_id} 每分钟最多 {parts[2]} 条！(๑¯◡¯๑)✧")
+        event.stop_event()
+
+    # ── 指令：取消限频 ────────────────────────────────
+
+    @filter.command("取消限频", priority=10001)
+    async def cmd_unratelimit(self, event: AstrMessageEvent, target: str = ""):
+        if not self._is_mama(event):
+            return
+        m = re.search(r"(\d+)", event.get_plain_text())
+        qq_id = m.group(1) if m else ""
+        if not qq_id:
+            yield event.plain_result("麻麻～格式是「取消限频 QQ号」哦！(｀・ω・´)")
+            event.stop_event()
+            return
+        if qq_id in self.rate_limits:
+            del self.rate_limits[qq_id]
+            self._flush()
+            yield event.plain_result(f"好哒～已取消 {qq_id} 的限频！(๑¯◡¯๑)✧")
+        else:
+            yield event.plain_result(f"麻麻～{qq_id} 本来就没被限频哦！(｀・ω・´)")
+        event.stop_event()
+
+    # ── 指令：限频列表 ────────────────────────────────
+
+    @filter.command("限频列表", priority=10001)
+    async def cmd_ratelimit_list(self, event: AstrMessageEvent):
+        if not self._is_mama(event):
+            return
+        if not self.rate_limits:
+            yield event.plain_result("目前没有设置任何限频哦～(｀・ω・´)")
+        else:
+            lines = "\n".join(f"{qq} → 最多 {n} 条/分钟" for qq, n in self.rate_limits.items())
+            yield event.plain_result(f"📋 限频列表：\n{lines}")
         event.stop_event()
