@@ -1,4 +1,4 @@
-"""小七月的控制插件 — 麻麻说闭嘴，本狐就真闭嘴！"""
+"""bot的聊天限制插件"""
 
 import json
 import os
@@ -144,7 +144,7 @@ class ControlPlugin(Star):
             result.chain = []
             return
 
-        # 用户被忽略 → 同样清空（麻麻永远可以说话）
+        # 用户被忽略 → 同样清空
         if not self._is_mama(event) and self._skipped(uid):
             logger.info(f"[Control] 🛑 已忽略用户 {uid}，yield 结果已拦截")
             result.chain = []
@@ -183,7 +183,7 @@ class ControlPlugin(Star):
             yield event.plain_result("好耶～本狐复活啦！ヽ(●´∀`●)ﾉ")
             event.stop_event()
         else:
-            yield event.plain_result("本狐本来就在说话呀～麻麻你是不是记错啦？(｀・ω・´)")
+            yield event.plain_result("本狐本来就在说话呀～主人你是不是记错啦？(｀・ω・´)")
             event.stop_event()
 
     # ── 指令：忽略 ────────────────────────────────────
@@ -193,15 +193,15 @@ class ControlPlugin(Star):
         if not self._is_mama(event):
             return
         if not target.isdigit():
-            yield event.plain_result("麻麻～格式是「忽略 QQ号 秒数」哦！(｀・ω・´)")
+            yield event.plain_result("主人～格式是「忽略 QQ号 秒数」哦！(｀・ω・´)")
             event.stop_event()
             return
         sec = self._pick_number(duration, DEFAULT_IGNORE_SECONDS)
         self._ignored[target] = time.time() + sec
         self._flush()
         yield event.plain_result(
-            f"遵命麻麻～已忽略 {target} {sec//60} 分钟！(｀・ω・´)✧" if sec >= 60
-            else f"遵命麻麻～已忽略 {target} {sec} 秒！(｀・ω・´)✧"
+            f"遵命主人～已忽略 {target} {sec//60} 分钟！(｀・ω・´)✧" if sec >= 60
+            else f"遵命主人～已忽略 {target} {sec} 秒！(｀・ω・´)✧"
         )
         event.stop_event()
 
@@ -212,7 +212,7 @@ class ControlPlugin(Star):
         if not self._is_mama(event):
             return
         if not target.isdigit():
-            yield event.plain_result("麻麻～格式是「取消忽略 QQ号」哦！(｀・ω・´)")
+            yield event.plain_result("主人～格式是「取消忽略 QQ号」哦！(｀・ω・´)")
             event.stop_event()
             return
         if target in self._ignored:
@@ -220,7 +220,7 @@ class ControlPlugin(Star):
             self._flush()
             yield event.plain_result(f"好哒～已取消忽略 {target}！(๑¯◡¯๑)✧")
         else:
-            yield event.plain_result(f"麻麻～{target} 本来就没被忽略呀！(｀・ω・´)")
+            yield event.plain_result(f"主人～{target} 本来就没被忽略呀！(｀・ω・´)")
         event.stop_event()
 
     # ── 指令：限频 ────────────────────────────────────
@@ -232,12 +232,12 @@ class ControlPlugin(Star):
         text = event.get_plain_text()
         parts = text.split()
         if len(parts) < 3:
-            yield event.plain_result("麻麻～格式是「限频 QQ号 次数」哦！(｀・ω・´)")
+            yield event.plain_result("主人～格式是「限频 QQ号 次数」哦！(｀・ω・´)")
             event.stop_event()
             return
         m = re.search(r"(\d+)", parts[1])
         if not m:
-            yield event.plain_result("麻麻～QQ号格式不对哦！(｀・ω・´)")
+            yield event.plain_result("主人～QQ号格式不对哦！(｀・ω・´)")
             event.stop_event()
             return
         qq_id = m.group(1)
@@ -259,7 +259,7 @@ class ControlPlugin(Star):
         m = re.search(r"(\d+)", event.get_plain_text())
         qq_id = m.group(1) if m else ""
         if not qq_id:
-            yield event.plain_result("麻麻～格式是「取消限频 QQ号」哦！(｀・ω・´)")
+            yield event.plain_result("主人～格式是「取消限频 QQ号」哦！(｀・ω・´)")
             event.stop_event()
             return
         if qq_id in self.rate_limits:
@@ -267,7 +267,7 @@ class ControlPlugin(Star):
             self._flush()
             yield event.plain_result(f"好哒～已取消 {qq_id} 的限频！(๑¯◡¯๑)✧")
         else:
-            yield event.plain_result(f"麻麻～{qq_id} 本来就没被限频哦！(｀・ω・´)")
+            yield event.plain_result(f"主人～{qq_id} 本来就没被限频哦！(｀・ω・´)")
         event.stop_event()
 
     # ── 指令：限频列表 ────────────────────────────────
