@@ -229,7 +229,7 @@ class ControlPlugin(Star):
     async def cmd_ratelimit(self, event: AstrMessageEvent, target: str = "", limit: str = ""):
         if not self._is_mama(event):
             return
-        text = event.get_plain_text()
+        text = event.message_str
         parts = text.split()
         if len(parts) < 3:
             yield event.plain_result("主人～格式是「限频 QQ号 次数」哦！(｀・ω・´)")
@@ -256,7 +256,7 @@ class ControlPlugin(Star):
     async def cmd_unratelimit(self, event: AstrMessageEvent, target: str = ""):
         if not self._is_mama(event):
             return
-        m = re.search(r"(\d+)", event.get_plain_text())
+        m = re.search(r"(\d+)", event.message_str)
         qq_id = m.group(1) if m else ""
         if not qq_id:
             yield event.plain_result("主人～格式是「取消限频 QQ号」哦！(｀・ω・´)")
