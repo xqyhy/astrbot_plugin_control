@@ -1,15 +1,15 @@
 {
     "mama_ids": {
         "type": "list",
-        "description": "麻麻QQ号列表（控制权限白名单）",
+        "description": "主人QQ号列表（控制权限白名单）",
         "hint": "只有这些QQ号能使用闭嘴、说话、忽略等控制指令",
         "items": { "type": "string" },
-        "default": ["2594036384", "1732147236"]
+        "default": ["1234567"]
     },
     "require_admin": {
         "type": "bool",
         "description": "需要 bot 管理员权限",
-        "hint": "开启后，只有 bot 管理员才能使用控制指令（与麻麻QQ号取交集）",
+        "hint": "开启后，只有 bot 管理员才能使用控制指令（与主人QQ号取交集）",
         "default": false
     },
     "priority": {
@@ -88,7 +88,7 @@
                         "type": "string",
                         "description": "忽略用户时的回复消息",
                         "hint": "支持占位符 {target}（QQ号）和 {duration}（时长，秒）",
-                        "default": "遵命麻麻～已忽略用户 {target} {duration} 秒！(｀・ω・´)✧"
+                        "default": "遵命主人～已忽略用户 {target} {duration} 秒！(｀・ω・´)✧"
                     }
                 }
             },
